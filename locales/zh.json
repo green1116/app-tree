@@ -1,0 +1,71 @@
+{
+  "app_name": "健身专业版",
+  "header": {
+    "title": "我的应用",
+    "languageSwitcher": "语言"
+  },
+  "navigation": {
+    "dashboard": "仪表板",
+    "connect": "连接",
+    "workout": "健身",
+    "courses": "课程",
+    "report": "报告"
+  },
+  "dashboard_title": "欢迎回来",
+  "dashboard_subtitle": "继续朝着你的健身目标前进",
+  "connect_now": "立即连接",
+  "start_workout": "开始健身",
+  "today_training_time": "今天训练时间",
+  "calories_burned": "消耗的卡路里",
+  "device_status": "设备状态",
+  "minutes": "分钟",
+  "kcal": "千卡",
+  "connected": "已连接",
+  "bluetooth_title": "连接设备",
+  "scan_devices": "扫描设备",
+  "scanning": "扫描中...",
+  "connecting": "连接中",
+  "device_connected": "已连接",
+  "device_type_watch": "智能手表",
+  "device_type_earbuds": "无线耳塞",
+  "device_type_band": "健身手环",
+  "device_signal": "信号强度",
+  "report_title": "营养摄入报告",
+  "calories": "热量",
+  "protein": "蛋白质",
+  "carbs": "碳水化合物",
+  "fat": "脂肪",
+  "date_range": "日期范围",
+  "daily_average": "日均摄入量",
+  "total_intake": "总摄入量",
+  "trend_analysis": "趋势分析",
+  "nutrition_distribution": "营养分布",
+  "no_data": "暂无数据，请添加饮食记录",
+  "loading": "加载中...",
+  "pages": {
+    "dashboard": {
+      "title": "仪表板",
+      "description": "欢迎来到您的仪表板"
+    },
+    "connect": {
+      "title": "连接",
+      "description": "与他人连接"
+    },
+    "workout": {
+      "title": "健身",
+      "description": "您的健身程序"
+    },
+    "courses": {
+      "title": "课程",
+      "description": "浏览我们的课程"
+    },
+    "course": {
+      "title": "课程",
+      "description": "课程详情和内容在这里"
+    },
+    "report": {
+      "title": "报告",
+      "description": "查看您的报告和分析"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "/[lang]/connect/page": "app/[lang]/connect/page.js",
+  "/[lang]/courses/page": "app/[lang]/courses/page.js",
+  "/[lang]/dashboard/page": "app/[lang]/dashboard/page.js",
+  "/[lang]/page": "app/[lang]/page.js",
+  "/[lang]/workout/page": "app/[lang]/workout/page.js"
+}

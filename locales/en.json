@@ -1,0 +1,71 @@
+{
+  "app_name": "Fitness Pro",
+  "header": {
+    "title": "My App",
+    "languageSwitcher": "Language"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "connect": "Connect",
+    "workout": "Workout",
+    "courses": "Courses",
+    "report": "Report"
+  },
+  "dashboard_title": "Welcome Back",
+  "dashboard_subtitle": "Keep pushing towards your fitness goals",
+  "connect_now": "Connect Now",
+  "start_workout": "Start Workout",
+  "today_training_time": "Today Training Time",
+  "calories_burned": "Calories Burned",
+  "device_status": "Device Status",
+  "minutes": "minutes",
+  "kcal": "kcal",
+  "connected": "Connected",
+  "bluetooth_title": "Connect Devices",
+  "scan_devices": "Scan Devices",
+  "scanning": "Scanning...",
+  "connecting": "Connecting",
+  "device_connected": "Connected",
+  "device_type_watch": "Smartwatch",
+  "device_type_earbuds": "Wireless Earbuds",
+  "device_type_band": "Fitness Band",
+  "device_signal": "Signal Strength",
+  "report_title": "Nutrition Intake Report",
+  "calories": "Calories",
+  "protein": "Protein",
+  "carbs": "Carbohydrates",
+  "fat": "Fat",
+  "date_range": "Date Range",
+  "daily_average": "Daily Average",
+  "total_intake": "Total Intake",
+  "trend_analysis": "Trend Analysis",
+  "nutrition_distribution": "Nutrition Distribution",
+  "no_data": "No data, please add diet records",
+  "loading": "Loading...",
+  "pages": {
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Welcome to your dashboard"
+    },
+    "connect": {
+      "title": "Connect",
+      "description": "Connect with others"
+    },
+    "workout": {
+      "title": "Workout",
+      "description": "Your workout routine"
+    },
+    "courses": {
+      "title": "Courses",
+      "description": "Browse our courses"
+    },
+    "course": {
+      "title": "Course",
+      "description": "Course details and content here"
+    },
+    "report": {
+      "title": "Report",
+      "description": "View your reports and analytics"
+    }
+  }
+}
