@@ -1,45 +1,58 @@
-# 前端项目常见忽略项
-node_modules/
-dist/
-build/
-.env
-.env.local
-*.log
-*.zip
-*.rar
-# 系统文件
-.DS_Store
-Thumbs.db
+# ================= 前端通用忽略项 =================
 # 依赖文件夹（npm/yarn/pnpm）
-# pnpm 存储目录
+node_modules/
 .pnpm-store/
 
-# 构建产物（Next.js 核心）
-.next/
-out/
+# 通用构建产物（适配React/Vue/Next等框架）
+dist/
 build/
-# Next.js 构建清单（对应你提到的 build-manifest.json）
-build-manifest.json
-# 静态资源编译产物
-static/chunks/
-static/ssg.css
-static/css/
+out/
 
-# 环境变量文件（包含敏感信息）
-
-.env.development.local
-.env.test.local
-.env.production.local
-
-# 日志文件
+# 压缩包/日志文件
+*.zip
+*.rar
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# IDE 配置文件
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store # Mac 系统隐藏文件
+# 系统隐藏文件
+.DS_Store # Mac系统
+Thumbs.db # Windows系统
+
+# 环境变量（包含敏感信息，禁止提交）
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ================= Next.js 专属忽略项 =================
+# Next.js 默认构建产物目录（16+版本核心）
+.next/
+# 项目自定义Next产物目录（根据你的实际情况保留）
+next/
+
+# Next.js 构建清单与静态资源产物
+build-manifest.json
+static/chunks/
+static/ssg.css
+static/css/
+
+# ================= IDE/编辑器配置 =================
+.idea/ # WebStorm
+.vscode/ # VS Code
+*.swp # Vim
+*.swo # Vim
+# Next.js 产物目录（精准匹配你的项目结构
+# Next.js 相关忽略
+.next/
+.next/**/*
+next/dev/
+next/.next/
+next/cache/
+next/**/*.rsinfo
+next/**/*.json
+next/**/*.js
+next/**/*.map
