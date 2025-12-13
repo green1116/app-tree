@@ -383,7 +383,6 @@ export default function ConnectPage() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
