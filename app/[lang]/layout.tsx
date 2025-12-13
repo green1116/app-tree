@@ -15,6 +15,8 @@ interface LayoutProps {
   params: Promise<{ lang: string }>
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function generateStaticParams() {
   return [{ lang: "en" }, { lang: "zh" }]
 }
