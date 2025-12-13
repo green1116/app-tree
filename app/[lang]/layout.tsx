@@ -24,6 +24,7 @@ export default async function RootLayout({ children, params }: LayoutProps) {
 
   return (
     <>
+      {/* Navigation Bar */}
       <NavbarSimple lang={lang} />
       <main className="min-h-screen">{children}</main>
     </>
