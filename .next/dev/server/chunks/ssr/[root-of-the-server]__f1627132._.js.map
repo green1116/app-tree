@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 14, "column": 0}, "map": {"version":3,"sources":["file:///E:/systemDir/Desktop/app-tree/app/page.tsx"],"sourcesContent":["// /app/page.tsx\r\n// 根路径页面：自动重定向到默认语言（英文）的 connect 页面\r\nimport { redirect } from 'next/navigation';\r\n\r\n/**\r\n * 根路径组件（对应访问 https://你的域名/ 时触发）\r\n * 作用：无需用户手动输入语言前缀，自动跳转到 /en/connect\r\n */\r\nexport default function RootHomePage() {\r\n  // 重定向逻辑：如果需要默认中文，可改为 redirect('/zh/connect')\r\n  redirect('/en/connect');\r\n\r\n  // 注：redirect 会直接跳转，下方 return 实际不会执行，仅为语法完整性\r\n  return null;\r\n}"],"names":[],"mappings":"AAAA,gBAAgB;AAChB,mCAAmC;;;;;AACnC;AAAA;;AAMe,SAAS;IACtB,6CAA6C;IAC7C,IAAA,gUAAQ,EAAC;IAET,4CAA4C;IAC5C,OAAO;AACT"}}]
-}
