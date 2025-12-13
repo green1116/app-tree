@@ -1,11 +1,25 @@
 "use client";
-import { useParams, useRouter } from 'next/navigation';
-import React from 'react';
+import { useParams, useRouter, usePathname } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
-const Navbar = () => {
-  const { lang } = useParams();
+interface NavbarProps {
+  lang?: string;
+}
+
+const Navbar = ({ lang: propLang }: NavbarProps = {}) => {
+  const params = useParams();
   const router = useRouter();
-  const currentLang = (lang as string) || 'zh';
+  const pathname = usePathname();
+  const [currentLang, setCurrentLang] = useState<string>('zh');
+  
+  useEffect(() => {
+    // 优先使用 prop，然后从 params 获取，最后从 pathname 解析
+    const langFromProp = propLang;
+    const langFromParams = params?.lang as string;
+    const langFromPath = pathname?.split('/')[1];
+    const finalLang = langFromProp || langFromParams || langFromPath || 'zh';
+    setCurrentLang(finalLang);
+  }, [propLang, params, pathname]);
 
   // 导航菜单
   const menuItems = [

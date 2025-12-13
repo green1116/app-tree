@@ -25,7 +25,7 @@ export default async function RootLayout({ children, params }: LayoutProps) {
   return (
     <html lang={lang}>
       <body className="font-sans antialiased">
-        <Navbar />
+        <Navbar lang={lang} />
         <main className="min-h-screen">{children}</main>
         <Analytics />
       </body>
