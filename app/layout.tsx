@@ -32,12 +32,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode
+  params?: { lang?: string }
 }>) {
+  const lang = params?.lang || 'zh'; // 默认使用中文，或从 params 获取
   return (
-    <html lang="en">
-      <body className={`font-sans antialiased`}>
+    <html lang={lang} suppressHydrationWarning>
+      <body className="font-sans antialiased">
         {children}
         <Analytics />
       </body>

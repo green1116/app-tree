@@ -15,6 +15,10 @@
   "dashboard_subtitle": "Keep pushing towards your fitness goals",
   "connect_now": "Connect Now",
   "start_workout": "Start Workout",
+  "workout_title": "AI Camera Workout",
+  "workout_desc": "Real-time form analysis with AI",
+  "courses_title": "Fitness Courses",
+  "courses_desc": "Choose the right course for your fitness goals",
   "today_training_time": "Today Training Time",
   "calories_burned": "Calories Burned",
   "device_status": "Device Status",
@@ -30,7 +34,12 @@
   "device_type_earbuds": "Wireless Earbuds",
   "device_type_band": "Fitness Band",
   "device_signal": "Signal Strength",
-  "report_title": "Nutrition Intake Report",
+  "report_title": "Training Report",
+  "report_desc": "View your training data statistics and analysis",
+  "report_training_count": "Training Count",
+  "report_training_duration": "Total Training Duration",
+  "report_completed_courses": "Completed Courses",
+  "report_note": "The above data is your training summary for this month, you can sync the latest data via Bluetooth devices.",
   "calories": "Calories",
   "protein": "Protein",
   "carbs": "Carbohydrates",
@@ -49,7 +58,11 @@
     },
     "connect": {
       "title": "Connect",
-      "description": "Connect with others"
+      "description": "Connect with others",
+      "bluetooth_title": "Bluetooth Connection",
+      "device_status": "Device Status",
+      "scan_devices": "Scan for Bluetooth Devices",
+      "desc": "Connect and manage your fitness device, view real-time workout data"
     },
     "workout": {
       "title": "Workout",
@@ -65,7 +78,12 @@
     },
     "report": {
       "title": "Report",
-      "description": "View your reports and analytics"
+      "description": "View your reports and analytics",
+      "desc": "View your training data statistics and analysis",
+      "training_count": "Training Count",
+      "training_duration": "Total Training Duration",
+      "completed_courses": "Completed Courses",
+      "note": "The above data is your training summary for this month, you can sync the latest data via Bluetooth devices."
     }
   }
 }

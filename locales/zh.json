@@ -1,5 +1,5 @@
 {
-  "app_name": "健身专业版",
+  "app_name": "韵运加速健身专业版",
   "header": {
     "title": "我的应用",
     "languageSwitcher": "语言"
@@ -15,6 +15,10 @@
   "dashboard_subtitle": "继续朝着你的健身目标前进",
   "connect_now": "立即连接",
   "start_workout": "开始健身",
+  "workout_title": "AI 摄像头训练",
+  "workout_desc": "AI 实时动作分析",
+  "courses_title": "健身课程",
+  "courses_desc": "为你的健身目标选择合适的课程",
   "today_training_time": "今天训练时间",
   "calories_burned": "消耗的卡路里",
   "device_status": "设备状态",
@@ -30,7 +34,12 @@
   "device_type_earbuds": "无线耳塞",
   "device_type_band": "健身手环",
   "device_signal": "信号强度",
-  "report_title": "营养摄入报告",
+  "report_title": "训练报告",
+  "report_desc": "查看你的训练数据统计与分析",
+  "report_training_count": "训练次数",
+  "report_training_duration": "总训练时长",
+  "report_completed_courses": "完成课程数",
+  "report_note": "以上数据为你本月的训练汇总，可通过蓝牙设备同步最新数据。",
   "calories": "热量",
   "protein": "蛋白质",
   "carbs": "碳水化合物",
@@ -49,7 +58,11 @@
     },
     "connect": {
       "title": "连接",
-      "description": "与他人连接"
+      "description": "与他人连接",
+      "bluetooth_title": "蓝牙连接",
+      "device_status": "设备状态",
+      "scan_devices": "扫描蓝牙设备",
+      "desc": "连接并管理你的健身设备，实时查看运动数据"
     },
     "workout": {
       "title": "健身",
@@ -65,7 +78,12 @@
     },
     "report": {
       "title": "报告",
-      "description": "查看您的报告和分析"
+      "description": "查看您的报告和分析",
+      "desc": "查看你的训练数据统计与分析",
+      "training_count": "训练次数",
+      "training_duration": "总训练时长",
+      "completed_courses": "完成课程数",
+      "note": "以上数据为你本月的训练汇总，可通过蓝牙设备同步最新数据。"
     }
   }
 }
