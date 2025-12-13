@@ -10,16 +10,12 @@ const Navbar = ({ lang: propLang }: NavbarProps = {}) => {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [currentLang, setCurrentLang] = useState<string>('zh');
   
-  useEffect(() => {
-    // 优先使用 prop，然后从 params 获取，最后从 pathname 解析
-    const langFromProp = propLang;
-    const langFromParams = params?.lang as string;
-    const langFromPath = pathname?.split('/')[1];
-    const finalLang = langFromProp || langFromParams || langFromPath || 'zh';
-    setCurrentLang(finalLang);
-  }, [propLang, params, pathname]);
+  // 优先使用 prop，然后从 params 获取，最后从 pathname 解析
+  const langFromProp = propLang;
+  const langFromParams = params?.lang as string;
+  const langFromPath = typeof window !== 'undefined' ? pathname?.split('/')[1] : null;
+  const currentLang = langFromProp || langFromParams || langFromPath || 'zh';
 
   // 导航菜单
   const menuItems = [
