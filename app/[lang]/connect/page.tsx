@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation';
 import { ClipLoader } from 'react-spinners';
 import en from '../../../locales/en.json';
 import zh from '../../../locales/zh.json';
-import Navbar from '../../../components/Navbar'; // 引入导航栏
 
 // 定义蓝牙相关类型
 type GattServiceWithChars = {
@@ -240,9 +239,7 @@ export default function ConnectPage() {
   if (!isClient) return <div></div>;
 
   return (
-    <div>
-      <Navbar />
-      <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
         <h1 className="text-3xl mb-4 text-gray-900">
           {locale.pages.connect.bluetooth_title || (lang === 'zh' ? '蓝牙连接' : 'Bluetooth Connection')}
         </h1>

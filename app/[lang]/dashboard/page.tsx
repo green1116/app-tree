@@ -1,6 +1,5 @@
-"use client"; // 新增这一行
+"use client";
 import { useParams } from 'next/navigation';
-import Navbar from '../../../components/Navbar'; // 引入导航栏
 
 export default function DashboardPage() {
   const { lang } = useParams();
@@ -57,9 +56,7 @@ export default function DashboardPage() {
   const currentText = text[lang as keyof typeof text] || text.en;
 
   return (
-    <div>
-      <Navbar />
-      <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
         <h1 className="text-3xl mb-4 text-gray-900">{currentText.title}</h1>
         <p className="text-gray-600 mb-8 leading-relaxed">{currentText.desc}</p>
         <div>{currentText.content}</div>

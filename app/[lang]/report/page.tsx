@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation';
 import axios from 'axios'; // 引入axios
 import en from '../../../locales/en.json';
 import zh from '../../../locales/zh.json';
-import Navbar from '../../../components/Navbar'; // 引入导航栏
 
 export default function ReportPage() {
   const { lang } = useParams();
@@ -47,7 +46,6 @@ export default function ReportPage() {
 
   return (
     <div>
-      <Navbar />
       <div className="p-8 max-w-6xl mx-auto">
         <h1 className="text-4xl mb-6 text-gray-900">
           {t.report_title || (lang === 'zh' ? '训练报告' : 'Training Report')}

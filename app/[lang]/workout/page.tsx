@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import en from '../../../locales/en.json';
 import zh from '../../../locales/zh.json';
-import Navbar from '../../../components/Navbar'; // 引入导航栏
 
 export default function WorkoutPage() {
   const { lang } = useParams();
@@ -50,9 +49,7 @@ export default function WorkoutPage() {
   if (!isClient) return <div className="min-h-screen"></div>;
 
   return (
-    <div>
-      <Navbar />
-      <div className="w-full min-h-screen">
+    <div className="w-full min-h-screen">
         {/* 顶部导航栏 */}
         <div className="px-8 py-4 bg-white border-b border-gray-200 flex justify-between items-center">
           <h1 className="m-0 text-2xl text-gray-900">My App</h1>

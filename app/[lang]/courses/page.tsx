@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation';
 import { ClipLoader } from 'react-spinners';
 import en from '../../../locales/en.json';
 import zh from '../../../locales/zh.json';
-import Navbar from '../../../components/Navbar'; // 引入导航栏
 
 // 课程类型定义
 type Course = {
@@ -141,9 +140,7 @@ export default function CoursesPage() {
   };
 
   return (
-    <div>
-      <Navbar />
-      <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
         <h1 className="text-4xl mb-6">
           {t.courses_title || (lang === 'zh' ? '健身课程' : 'Fitness Courses')}
         </h1>
