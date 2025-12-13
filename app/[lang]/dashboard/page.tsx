@@ -60,7 +60,6 @@ export default function DashboardPage() {
         <h1 className="text-3xl mb-4 text-gray-900">{currentText.title}</h1>
         <p className="text-gray-600 mb-8 leading-relaxed">{currentText.desc}</p>
         <div>{currentText.content}</div>
-      </div>
     </div>
   );
 }

@@ -90,6 +90,5 @@ export default function CourseDetailPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
