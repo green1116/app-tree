@@ -23,12 +23,9 @@ export default async function RootLayout({ children, params }: LayoutProps) {
   const { lang } = await params
 
   return (
-    <html lang={lang}>
-      <body className="font-sans antialiased">
-        <Navbar lang={lang} />
-        <main className="min-h-screen">{children}</main>
-        <Analytics />
-      </body>
-    </html>
+    <>
+      <Navbar lang={lang} />
+      <main className="min-h-screen">{children}</main>
+    </>
   )
 }
