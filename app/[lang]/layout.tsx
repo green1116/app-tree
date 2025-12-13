@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import "../globals.css"
-import Navbar from "@/components/Navbar"
+import NavbarSimple from "@/components/NavbarSimple"
 
 export const metadata: Metadata = {
   title: "Multi-Language App",
@@ -24,7 +24,7 @@ export default async function RootLayout({ children, params }: LayoutProps) {
 
   return (
     <>
-      <Navbar lang={lang} />
+      <NavbarSimple lang={lang} />
       <main className="min-h-screen">{children}</main>
     </>
   )
