@@ -3,7 +3,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import en from '../../../../locales/en.json';
 import zh from '../../../../locales/zh.json';
-import Navbar from '../../../../components/Navbar';
 
 export default function CourseDetailPage() {
   const { lang, id } = useParams();
@@ -35,9 +34,7 @@ export default function CourseDetailPage() {
   };
 
   return (
-    <div>
-      <Navbar />
-      <div className="w-full">
+    <div className="w-full">
         {/* Course Banner */}
         <div className="relative w-full h-64 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
           <div className="text-center text-white">
