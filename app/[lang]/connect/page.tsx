@@ -73,9 +73,8 @@ const parseFitnessData = {
 
 export default function ConnectPage() {
   const { lang } = useParams();
-  const locale = lang === 'en' 
-  ? require('../../../locales/en.json') 
-  : require('../../../locales/zh.json');
+  const locale = lang === 'en' ? en : zh;
+  const t = lang === 'zh' ? zh : en;
   const [isClient, setIsClient] = useState(false);
   const [devices, setDevices] = useState<BluetoothDevice[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<BluetoothDevice | null>(null);
@@ -90,8 +89,6 @@ export default function ConnectPage() {
     calories: 0, // 卡路里（千卡）
     isDataReceived: false // 是否接收到数据
   });
-
-  const t = lang === 'zh' ? zh : en;
 
   // 扫描蓝牙设备
   const startScan = async () => {
