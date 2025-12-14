@@ -80,16 +80,57 @@ export default function ConnectPage() {
   const [devices, setDevices] = useState<BluetoothDevice[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<BluetoothDevice | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [gattServer, setGattServer] = useState<BluetoothRemoteGATTServer | null>(null);
   const [gattServices, setGattServices] = useState<GattServiceWithChars[]>([]);
   
+  // 从 localStorage 恢复数据
+  const loadFitnessDataFromStorage = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('fitnessData');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            heartRate: parsed.heartRate || 0,
+            time: parsed.time || 0,
+            calories: parsed.calories || 0,
+            isDataReceived: parsed.isDataReceived || false
+          };
+        }
+      } catch (err) {
+        console.error('Failed to load fitness data from localStorage:', err);
+      }
+    }
+    return {
+      heartRate: 0,
+      time: 0,
+      calories: 0,
+      isDataReceived: false
+    };
+  };
+
   // 健身数据存储
-  const [fitnessData, setFitnessData] = useState({
-    heartRate: 0, // 心率（次/分钟）
-    time: 0, // 运动时间（秒）
-    calories: 0, // 卡路里（千卡）
-    isDataReceived: false // 是否接收到数据
-  });
+  const [fitnessData, setFitnessData] = useState(loadFitnessDataFromStorage);
+
+  // 保存数据到 localStorage
+  const saveFitnessDataToStorage = (data: typeof fitnessData) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('fitnessData', JSON.stringify(data));
+      } catch (err) {
+        console.error('Failed to save fitness data to localStorage:', err);
+      }
+    }
+  };
+
+  // 当 fitnessData 更新时，自动保存到 localStorage
+  useEffect(() => {
+    if (fitnessData.isDataReceived) {
+      saveFitnessDataToStorage(fitnessData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitnessData.heartRate, fitnessData.time, fitnessData.calories, fitnessData.isDataReceived]);
 
   // 扫描蓝牙设备
   const startScan = async () => {
@@ -142,6 +183,7 @@ export default function ConnectPage() {
         return;
       }
 
+      setIsConnecting(true);
       toast.loading(lang === 'zh' ? '正在连接设备...' : 'Connecting to device...', { id: 'connecting' });
 
       // 添加连接超时处理
@@ -178,7 +220,11 @@ export default function ConnectPage() {
                   const value = (e.target as BluetoothRemoteGATTCharacteristic).value;
                   if (!value) return;
                   const heartRate = parseFitnessData.heartRate(value);
-                  setFitnessData(prev => ({ ...prev, heartRate, isDataReceived: true }));
+                  setFitnessData(prev => {
+                    const updated = { ...prev, heartRate, isDataReceived: true };
+                    saveFitnessDataToStorage(updated);
+                    return updated;
+                  });
                 } catch (parseErr) {
                   console.error('心率数据解析失败：', parseErr);
                   toast.error(lang === 'zh' ? '心率数据解析失败' : 'Failed to parse heart rate data', { duration: 3000 });
@@ -201,7 +247,11 @@ export default function ConnectPage() {
                   const value = (e.target as BluetoothRemoteGATTCharacteristic).value;
                   if (!value) return;
                   const { time, calories } = parseFitnessData.workoutData(value);
-                  setFitnessData(prev => ({ ...prev, time, calories, isDataReceived: true }));
+                  setFitnessData(prev => {
+                    const updated = { ...prev, time, calories, isDataReceived: true };
+                    saveFitnessDataToStorage(updated);
+                    return updated;
+                  });
                 } catch (parseErr) {
                   console.error('运动数据解析失败：', parseErr);
                   toast.error(lang === 'zh' ? '运动数据解析失败' : 'Failed to parse workout data', { duration: 3000 });
@@ -225,6 +275,8 @@ export default function ConnectPage() {
       const errorMsg = err as Error;
       const errorMessage = errorMsg.message || errorMsg.toString();
       toast.error(lang === 'zh' ? `设备连接失败：${errorMessage}` : `Connection failed: ${errorMessage}`);
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -236,7 +288,12 @@ export default function ConnectPage() {
         throw new Error('Empty data received');
       }
       const heartRate = parseFitnessData.heartRate(value);
-      setFitnessData(prev => ({ ...prev, heartRate, isDataReceived: true }));
+      const newData = { heartRate, isDataReceived: true };
+      setFitnessData(prev => {
+        const updated = { ...prev, ...newData };
+        saveFitnessDataToStorage(updated);
+        return updated;
+      });
     } catch (err) {
       console.error('读取初始心率数据失败：', err);
       toast.error(lang === 'zh' ? '心率数据读取失败' : 'Failed to read heart rate data', { duration: 3000 });
@@ -251,7 +308,12 @@ export default function ConnectPage() {
         throw new Error('Empty data received');
       }
       const { time, calories } = parseFitnessData.workoutData(value);
-      setFitnessData(prev => ({ ...prev, time, calories, isDataReceived: true }));
+      const newData = { time, calories, isDataReceived: true };
+      setFitnessData(prev => {
+        const updated = { ...prev, ...newData };
+        saveFitnessDataToStorage(updated);
+        return updated;
+      });
     } catch (err) {
       console.error('读取初始运动数据失败：', err);
       toast.error(lang === 'zh' ? '运动数据读取失败' : 'Failed to read workout data', { duration: 3000 });
@@ -268,12 +330,14 @@ export default function ConnectPage() {
       setConnectedDevice(null);
       setGattServer(null);
       setGattServices([]);
-      setFitnessData({
+      const resetData = {
         heartRate: 0,
         time: 0,
         calories: 0,
         isDataReceived: false
-      });
+      };
+      setFitnessData(resetData);
+      saveFitnessDataToStorage(resetData);
       toast.success(lang === 'zh' ? '已断开设备连接' : 'Disconnected from device');
     }
   };
@@ -390,11 +454,11 @@ export default function ConnectPage() {
         {/* 蓝牙操作按钮 */}
         <div className="max-w-2xl mb-8">
           <button 
-            className={`px-6 py-3 text-white border-none rounded-md cursor-pointer text-base transition-colors duration-300 w-full flex items-center justify-center gap-2 ${
-              isScanning ? 'bg-red-500' : 'bg-blue-600'
+            className={`px-6 py-3 text-white border-none rounded-md cursor-pointer text-base transition-colors duration-300 w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isScanning ? 'bg-red-500' : 'bg-blue-600 hover:bg-blue-700'
             }`}
             onClick={isScanning ? () => {} : startScan}
-            disabled={isScanning}
+            disabled={isScanning || isConnecting}
           >
             {isScanning ? (
               <>
@@ -430,11 +494,18 @@ export default function ConnectPage() {
                 >
                   <span>{device.name || (lang === 'zh' ? '未知设备' : 'Unknown Device')}</span>
                   <button 
-                    className="px-4 py-2 bg-blue-600 text-white border-none rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-blue-600 text-white border-none rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[100px]"
                     onClick={() => connectDevice(device)}
-                    disabled={connectedDevice !== null}
+                    disabled={connectedDevice !== null || isConnecting}
                   >
-                    {lang === 'zh' ? '连接' : 'Connect'}
+                    {isConnecting ? (
+                      <>
+                        <ClipLoader size={14} color="#fff" />
+                        <span>{lang === 'zh' ? '连接中...' : 'Connecting...'}</span>
+                      </>
+                    ) : (
+                      lang === 'zh' ? '连接' : 'Connect'
+                    )}
                   </button>
                 </li>
               ))}
