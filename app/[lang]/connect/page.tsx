@@ -72,6 +72,38 @@ const parseFitnessData = {
   }
 };
 
+// 浏览器兼容性检测
+const detectBrowser = () => {
+  if (typeof window === 'undefined') return { name: 'unknown', isSupported: false };
+  
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isChrome = /chrome/.test(userAgent) && !/edge|opr|edg/.test(userAgent);
+  const isEdge = /edg/.test(userAgent);
+  const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
+  const isFirefox = /firefox/.test(userAgent);
+  
+  // Web Bluetooth API 支持情况
+  // Chrome/Edge: 完全支持
+  // Safari: 不支持
+  // Firefox: 不支持
+  const isBluetoothSupported = typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+  
+  let browserName = 'unknown';
+  if (isChrome) browserName = 'Chrome';
+  else if (isEdge) browserName = 'Edge';
+  else if (isSafari) browserName = 'Safari';
+  else if (isFirefox) browserName = 'Firefox';
+  
+  return {
+    name: browserName,
+    isSupported: isBluetoothSupported,
+    isChrome,
+    isEdge,
+    isSafari,
+    isFirefox
+  };
+};
+
 export default function ConnectPage() {
   const { lang } = useParams();
   const locale = lang === 'en' ? en : zh;
@@ -83,6 +115,7 @@ export default function ConnectPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [gattServer, setGattServer] = useState<BluetoothRemoteGATTServer | null>(null);
   const [gattServices, setGattServices] = useState<GattServiceWithChars[]>([]);
+  const [browserInfo, setBrowserInfo] = useState<ReturnType<typeof detectBrowser>>({ name: 'unknown', isSupported: false, isChrome: false, isEdge: false, isSafari: false, isFirefox: false });
   
   // 从 localStorage 恢复数据
   const loadFitnessDataFromStorage = () => {
@@ -344,9 +377,17 @@ export default function ConnectPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const browser = detectBrowser();
+    setBrowserInfo(browser);
+    
     // 检查浏览器是否支持Web Bluetooth
-    if (!navigator.bluetooth) {
-      toast.error(lang === 'zh' ? '你的浏览器不支持蓝牙功能' : 'Your browser does not support Bluetooth', { duration: 5000 });
+    if (!browser.isSupported) {
+      const message = browser.isSafari 
+        ? (lang === 'zh' ? 'Safari 浏览器不支持 Web Bluetooth API。请使用 Chrome 或 Edge 浏览器。' : 'Safari does not support Web Bluetooth API. Please use Chrome or Edge browser.')
+        : browser.isFirefox
+        ? (lang === 'zh' ? 'Firefox 浏览器不支持 Web Bluetooth API。请使用 Chrome 或 Edge 浏览器。' : 'Firefox does not support Web Bluetooth API. Please use Chrome or Edge browser.')
+        : (lang === 'zh' ? '你的浏览器不支持蓝牙功能。请使用 Chrome 或 Edge 浏览器。' : 'Your browser does not support Bluetooth. Please use Chrome or Edge browser.');
+      toast.error(message, { duration: 6000 });
     }
   }, [lang]);
 
@@ -355,12 +396,18 @@ export default function ConnectPage() {
   return (
     <>
       <Toaster 
-        position="top-right"
+        position="top-center"
+        containerStyle={{
+          top: 20,
+        }}
         toastOptions={{
           duration: 4000,
           style: {
             background: '#363636',
             color: '#fff',
+            fontSize: '14px',
+            padding: '12px 16px',
+            maxWidth: '90vw',
           },
           success: {
             duration: 3000,
@@ -384,81 +431,105 @@ export default function ConnectPage() {
           },
         }}
       />
-      <div className="p-8 max-w-6xl mx-auto">
-        <h1 className="text-3xl mb-4 text-gray-900">
+      <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto">
+        <h1 className="text-2xl sm:text-3xl mb-4 text-gray-900">
           {locale.pages.connect.bluetooth_title || (lang === 'zh' ? '蓝牙连接' : 'Bluetooth Connection')}
         </h1>
-        <p className="text-gray-600 mb-8 leading-relaxed">
+        <p className="text-gray-600 mb-6 sm:mb-8 leading-relaxed text-sm sm:text-base">
           {t.pages.connect.desc || (lang === 'zh' ? '连接并管理你的健身设备，实时查看运动数据' : 'Connect and ...')}
         </p>
 
+        {/* 浏览器兼容性提示 */}
+        {!browserInfo.isSupported && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="text-yellow-600 text-xl">⚠️</div>
+              <div className="flex-1">
+                <h3 className="text-yellow-800 font-semibold mb-1 text-sm sm:text-base">
+                  {lang === 'zh' ? '浏览器兼容性提示' : 'Browser Compatibility Notice'}
+                </h3>
+                <p className="text-yellow-700 text-xs sm:text-sm mb-2">
+                  {browserInfo.isSafari 
+                    ? (lang === 'zh' ? 'Safari 浏览器不支持 Web Bluetooth API。' : 'Safari does not support Web Bluetooth API.')
+                    : browserInfo.isFirefox
+                    ? (lang === 'zh' ? 'Firefox 浏览器不支持 Web Bluetooth API。' : 'Firefox does not support Web Bluetooth API.')
+                    : (lang === 'zh' ? '当前浏览器不支持 Web Bluetooth API。' : 'Current browser does not support Web Bluetooth API.')}
+                </p>
+                <p className="text-yellow-700 text-xs sm:text-sm">
+                  {lang === 'zh' ? '建议使用 Chrome 或 Edge 浏览器以获得最佳体验。' : 'We recommend using Chrome or Edge browser for the best experience.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 健身数据展示面板（核心） */}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-6 mb-8 max-w-3xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 max-w-3xl">
           {/* 心率卡片 */}
-          <div className="p-6 border border-gray-200 rounded-lg bg-gray-50 text-center">
-            <h3 className="m-0 mb-4 text-red-600">
+          <div className="p-4 sm:p-6 border border-gray-200 rounded-lg bg-gray-50 text-center">
+            <h3 className="m-0 mb-3 sm:mb-4 text-red-600 text-sm sm:text-base">
               {lang === 'zh' ? '实时心率' : 'Real-time Heart Rate'}
             </h3>
-            <p className="text-5xl m-0 text-gray-900">
+            <p className="text-4xl sm:text-5xl m-0 text-gray-900 font-semibold">
               {fitnessData.heartRate || '-'}
             </p>
-            <p className="text-gray-600 mt-2 mb-0">
+            <p className="text-gray-600 mt-2 mb-0 text-xs sm:text-sm">
               {lang === 'zh' ? '次/分钟' : 'bpm'}
             </p>
           </div>
 
           {/* 运动时间卡片 */}
-          <div className="p-6 border border-gray-200 rounded-lg bg-gray-50 text-center">
-            <h3 className="m-0 mb-4 text-blue-600">
+          <div className="p-4 sm:p-6 border border-gray-200 rounded-lg bg-gray-50 text-center">
+            <h3 className="m-0 mb-3 sm:mb-4 text-blue-600 text-sm sm:text-base">
               {lang === 'zh' ? '运动时间' : 'Workout Time'}
             </h3>
-            <p className="text-5xl m-0 text-gray-900">
+            <p className="text-4xl sm:text-5xl m-0 text-gray-900 font-semibold">
               {fitnessData.time ? parseFitnessData.formatTime(fitnessData.time) : '-'}
             </p>
-            <p className="text-gray-600 mt-2 mb-0">
+            <p className="text-gray-600 mt-2 mb-0 text-xs sm:text-sm">
               {lang === 'zh' ? '时:分:秒' : 'HH:MM:SS'}
             </p>
           </div>
 
           {/* 卡路里卡片 */}
-          <div className="p-6 border border-gray-200 rounded-lg bg-gray-50 text-center">
-            <h3 className="m-0 mb-4 text-orange-500">
+          <div className="p-4 sm:p-6 border border-gray-200 rounded-lg bg-gray-50 text-center">
+            <h3 className="m-0 mb-3 sm:mb-4 text-orange-500 text-sm sm:text-base">
               {lang === 'zh' ? '消耗卡路里' : 'Calories Burned'}
             </h3>
-            <p className="text-5xl m-0 text-gray-900">
+            <p className="text-4xl sm:text-5xl m-0 text-gray-900 font-semibold">
               {fitnessData.calories ? fitnessData.calories.toFixed(1) : '-'}
             </p>
-            <p className="text-gray-600 mt-2 mb-0">
+            <p className="text-gray-600 mt-2 mb-0 text-xs sm:text-sm">
               {lang === 'zh' ? '千卡(kcal)' : 'kcal'}
             </p>
           </div>
         </div>
 
         {/* 设备状态展示 */}
-        <div className="p-8 border border-gray-200 rounded-lg text-center mb-6 max-w-2xl">
-          <p className="text-gray-600 m-0 mb-4">
+        <div className="p-4 sm:p-6 md:p-8 border border-gray-200 rounded-lg text-center mb-4 sm:mb-6 max-w-2xl">
+          <p className="text-gray-600 m-0 mb-3 sm:mb-4 text-sm sm:text-base">
             {t.device_status || (lang === 'zh' ? '设备状态' : 'Device Status')}
           </p>
-          <p className={`text-xl m-0 ${connectedDevice ? 'text-green-600' : 'text-red-500'}`}>
+          <p className={`text-lg sm:text-xl m-0 font-semibold ${connectedDevice ? 'text-green-600' : 'text-red-500'}`}>
             {connectedDevice 
               ? (lang === 'zh' ? '已连接' : 'Connected') 
               : (lang === 'zh' ? '未连接' : 'Disconnected')}
           </p>
           {connectedDevice && (
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-600 mt-2 text-sm sm:text-base break-words">
               {lang === 'zh' ? '当前设备：' : 'Current Device：'}{connectedDevice.name || (lang === 'zh' ? '未知设备' : 'Unknown Device')}
             </p>
           )}
         </div>
 
         {/* 蓝牙操作按钮 */}
-        <div className="max-w-2xl mb-8">
+        <div className="max-w-2xl mb-6 sm:mb-8">
           <button 
-            className={`px-6 py-3 text-white border-none rounded-md cursor-pointer text-base transition-colors duration-300 w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-              isScanning ? 'bg-red-500' : 'bg-blue-600 hover:bg-blue-700'
+            className={`px-4 sm:px-6 py-3 sm:py-3.5 text-white border-none rounded-md cursor-pointer text-sm sm:text-base transition-colors duration-300 w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] touch-manipulation ${
+              isScanning ? 'bg-red-500' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
             }`}
             onClick={isScanning ? () => {} : startScan}
-            disabled={isScanning || isConnecting}
+            disabled={isScanning || isConnecting || !browserInfo.isSupported}
           >
             {isScanning ? (
               <>
@@ -472,7 +543,7 @@ export default function ConnectPage() {
 
           {connectedDevice && (
             <button 
-              className="px-6 py-3 bg-red-500 text-white border-none rounded-md cursor-pointer text-base transition-colors duration-300 w-full mt-4"
+              className="px-4 sm:px-6 py-3 sm:py-3.5 bg-red-500 text-white border-none rounded-md cursor-pointer text-sm sm:text-base transition-colors duration-300 w-full mt-4 min-h-[48px] hover:bg-red-600 active:bg-red-700 touch-manipulation"
               onClick={handleDisconnect}
             >
               {lang === 'zh' ? '断开设备' : 'Disconnect Device'}
@@ -482,21 +553,21 @@ export default function ConnectPage() {
 
         {/* 蓝牙设备列表 */}
         {devices.length > 0 && (
-          <div className="max-w-2xl border border-gray-200 rounded-lg mb-8">
-            <h3 className="p-4 m-0 border-b border-gray-200">
+          <div className="max-w-2xl border border-gray-200 rounded-lg mb-6 sm:mb-8">
+            <h3 className="p-3 sm:p-4 m-0 border-b border-gray-200 text-sm sm:text-base font-semibold">
               {locale.pages.connect.device_status || (lang === 'zh' ? '可用设备' : 'Available Devices')}
             </h3>
             <ul className="list-none p-0 m-0">
               {devices.map((device) => (
                 <li 
                   key={device.id}
-                  className="p-4 border-b border-gray-200 flex justify-between items-center last:border-b-0"
+                  className="p-3 sm:p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 last:border-b-0"
                 >
-                  <span>{device.name || (lang === 'zh' ? '未知设备' : 'Unknown Device')}</span>
+                  <span className="text-sm sm:text-base break-words flex-1">{device.name || (lang === 'zh' ? '未知设备' : 'Unknown Device')}</span>
                   <button 
-                    className="px-4 py-2 bg-blue-600 text-white border-none rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[100px]"
+                    className="px-4 py-2.5 sm:py-2 bg-blue-600 text-white border-none rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[100px] min-h-[44px] text-sm sm:text-base hover:bg-blue-700 active:bg-blue-800 touch-manipulation"
                     onClick={() => connectDevice(device)}
-                    disabled={connectedDevice !== null || isConnecting}
+                    disabled={connectedDevice !== null || isConnecting || !browserInfo.isSupported}
                   >
                     {isConnecting ? (
                       <>
@@ -515,17 +586,17 @@ export default function ConnectPage() {
 
         {/* GATT服务和特征值展示（调试用，可保留） */}
         {connectedDevice && gattServices.length > 0 && (
-          <div className="max-w-3xl border border-gray-200 rounded-lg mb-8 bg-gray-100 p-4">
-            <h3 className="m-0 mb-4 text-base text-gray-600">
+          <div className="max-w-3xl border border-gray-200 rounded-lg mb-6 sm:mb-8 bg-gray-100 p-3 sm:p-4">
+            <h3 className="m-0 mb-3 sm:mb-4 text-sm sm:text-base text-gray-600 font-semibold">
               {lang === 'zh' ? '设备服务信息（调试用）' : 'Device Service Info (Debug)'}
             </h3>
-            <div className="text-sm text-gray-800 max-h-[200px] overflow-auto">
+            <div className="text-xs sm:text-sm text-gray-800 max-h-[200px] sm:max-h-[300px] overflow-auto">
               {gattServices.map((item, serviceIndex) => (
-                <div key={serviceIndex} className="mb-2">
-                  <p className="m-0 font-bold">Service: {item.service.uuid}</p>
-                  <ul className="m-0 ml-4 p-0">
+                <div key={serviceIndex} className="mb-2 break-words">
+                  <p className="m-0 font-bold text-xs sm:text-sm">Service: {item.service.uuid}</p>
+                  <ul className="m-0 ml-2 sm:ml-4 p-0">
                     {item.characteristics.map((char, charIndex) => (
-                      <li key={charIndex} className="my-1">
+                      <li key={charIndex} className="my-1 text-xs sm:text-sm">
                         Char: {char.uuid} | Properties: {char.properties.join(', ')}
                       </li>
                     ))}
