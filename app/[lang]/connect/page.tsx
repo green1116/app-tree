@@ -3,118 +3,45 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ClipLoader } from 'react-spinners';
 import toast, { Toaster } from 'react-hot-toast';
-import en from '../../../locales/en.json';
-import zh from '../../../locales/zh.json';
+import { bluetoothParser, FITNESS_DEVICE_UUIDS } from '@/utils/bluetoothParser';
+import { getLocale, getTranslation } from '@/utils/locale';
+import { detectBrowser, getCompatibilityMessage } from '@/utils/browserDetection';
 
-// 定义蓝牙相关类型
+/**
+ * GATT 服务和特征值类型定义
+ * 用于存储从蓝牙设备读取的服务和特征值信息
+ */
 type GattServiceWithChars = {
   service: BluetoothRemoteGATTService;
   characteristics: BluetoothRemoteGATTCharacteristic[];
 };
 
-// 健身设备常见蓝牙服务UUID（可根据你的协议文档修改）
-const FITNESS_DEVICE_UUIDS = {
-  // 心率服务（标准UUID：0x180D）
-  HEART_RATE_SERVICE: '0000180d-0000-1000-8000-00805f9b34fb',
-  // 心率测量特征值（标准UUID：0x2A37）
-  HEART_RATE_MEASUREMENT: '00002a37-0000-1000-8000-00805f9b34fb',
-  // 健身设备服务（标准UUID：0x1826）
-  FITNESS_MACHINE_SERVICE: '00001826-0000-1000-8000-00805f9b34fb',
-  // 卡路里/时间特征值（根据你的协议文档替换，这里为示例）
-  WORKOUT_DATA: '00002a6d-0000-1000-8000-00805f9b34fb'
-};
-
-// 解析健身数据的工具函数
-const parseFitnessData = {
-  /**
-   * 解析心率数据（符合蓝牙心率服务标准协议）
-   * @param value ArrayBuffer 心率特征值数据
-   * @returns number 心率值（次/分钟）
-   */
-  heartRate: (value: ArrayBuffer): number => {
-    const view = new DataView(value);
-    // 第一个字节是标志位，第2个字节是心率值（标准格式）
-    const flags = view.getUint8(0);
-    let heartRate = 0;
-    // 检查是否为16位心率值（标志位第0位为1则是16位，否则8位）
-    if (flags & 0x01) {
-      heartRate = view.getUint16(1, true); // 小端序
-    } else {
-      heartRate = view.getUint8(1);
-    }
-    return heartRate;
-  },
-
-  /**
-   * 解析运动时间和卡路里数据（根据你的协议文档调整解析逻辑）
-   * @param value ArrayBuffer 运动数据特征值
-   * @returns { time: number, calories: number } 时间（秒）、卡路里（千卡）
-   */
-  workoutData: (value: ArrayBuffer): { time: number; calories: number } => {
-    const view = new DataView(value);
-    // 示例解析逻辑（根据你的协议文档修改偏移量和数据类型）
-    // 假设：前4字节是时间（秒，32位无符号整数），后4字节是卡路里（千卡，32位无符号整数）
-    const time = view.getUint32(0, true); // 小端序，运动时间（秒）
-    const calories = view.getUint32(4, true) / 1000; // 转换为千卡（根据设备协议调整）
-    return { time, calories };
-  },
-
-  /**
-   * 格式化时间（秒→HH:MM:SS）
-   * @param seconds 秒数
-   * @returns string 格式化后的时间
-   */
-  formatTime: (seconds: number): string => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  }
-};
-
-// 浏览器兼容性检测
-const detectBrowser = () => {
-  if (typeof window === 'undefined') return { name: 'unknown', isSupported: false };
-  
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isChrome = /chrome/.test(userAgent) && !/edge|opr|edg/.test(userAgent);
-  const isEdge = /edg/.test(userAgent);
-  const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
-  const isFirefox = /firefox/.test(userAgent);
-  
-  // Web Bluetooth API 支持情况
-  // Chrome/Edge: 完全支持
-  // Safari: 不支持
-  // Firefox: 不支持
-  const isBluetoothSupported = typeof navigator !== 'undefined' && 'bluetooth' in navigator;
-  
-  let browserName = 'unknown';
-  if (isChrome) browserName = 'Chrome';
-  else if (isEdge) browserName = 'Edge';
-  else if (isSafari) browserName = 'Safari';
-  else if (isFirefox) browserName = 'Firefox';
-  
-  return {
-    name: browserName,
-    isSupported: isBluetoothSupported,
-    isChrome,
-    isEdge,
-    isSafari,
-    isFirefox
-  };
-};
-
+/**
+ * 蓝牙连接页面组件
+ * 功能：
+ * 1. 扫描和连接蓝牙健身设备
+ * 2. 实时接收和显示心率、运动时间、卡路里数据
+ * 3. 数据持久化到 localStorage
+ * 4. 浏览器兼容性检测和提示
+ */
 export default function ConnectPage() {
   const { lang } = useParams();
-  const locale = lang === 'en' ? en : zh;
-  const t = lang === 'zh' ? zh : en;
+  const currentLang = (lang as string) || 'zh';
+  
+  // 使用工具函数加载多语言
+  const locale = getLocale(currentLang);
+  const t = getTranslation(currentLang);
+  
+  // 客户端渲染状态（用于 SSR 兼容）
   const [isClient, setIsClient] = useState(false);
-  const [devices, setDevices] = useState<BluetoothDevice[]>([]);
-  const [connectedDevice, setConnectedDevice] = useState<BluetoothDevice | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [gattServer, setGattServer] = useState<BluetoothRemoteGATTServer | null>(null);
-  const [gattServices, setGattServices] = useState<GattServiceWithChars[]>([]);
+  
+  // 蓝牙设备相关状态
+  const [devices, setDevices] = useState<BluetoothDevice[]>([]); // 扫描到的设备列表
+  const [connectedDevice, setConnectedDevice] = useState<BluetoothDevice | null>(null); // 当前连接的设备
+  const [isScanning, setIsScanning] = useState(false); // 是否正在扫描设备
+  const [isConnecting, setIsConnecting] = useState(false); // 是否正在连接设备
+  const [gattServer, setGattServer] = useState<BluetoothRemoteGATTServer | null>(null); // GATT 服务器实例
+  const [gattServices, setGattServices] = useState<GattServiceWithChars[]>([]); // GATT 服务和特征值列表
   const [browserInfo, setBrowserInfo] = useState<ReturnType<typeof detectBrowser>>({ name: 'unknown', isSupported: false, isChrome: false, isEdge: false, isSafari: false, isFirefox: false });
   
   // 从 localStorage 恢复数据
@@ -165,94 +92,138 @@ export default function ConnectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitnessData.heartRate, fitnessData.time, fitnessData.calories, fitnessData.isDataReceived]);
 
-  // 扫描蓝牙设备
+  /**
+   * 扫描蓝牙设备
+   * 
+   * 流程：
+   * 1. 显示扫描状态
+   * 2. 请求用户选择蓝牙设备（通过浏览器原生对话框）
+   * 3. 添加超时保护（30秒）
+   * 4. 将找到的设备添加到设备列表
+   * 5. 监听设备断开连接事件
+   * 
+   * 注意：
+   * - 需要用户手动在浏览器对话框中选择设备
+   * - 如果用户取消选择，不会显示错误提示
+   */
   const startScan = async () => {
     try {
       setIsScanning(true);
       
-      // 添加超时处理
+      // 添加超时处理：30秒后如果仍未选择设备，则超时
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error(lang === 'zh' ? '扫描超时，请重试' : 'Scan timeout, please try again')), 30000); // 30秒超时
+        setTimeout(() => reject(new Error(currentLang === 'zh' ? '扫描超时，请重试' : 'Scan timeout, please try again')), 30000);
       });
 
-      // 请求用户选择蓝牙设备（指定健身设备相关服务）
+      // 请求用户选择蓝牙设备
+      // 使用 filters 和 optionalServices 来限制扫描范围，提高匹配精度
       const devicePromise = navigator.bluetooth.requestDevice({
-        acceptAllDevices: false, // 只扫描指定服务的设备（更精准）
-        filters: [{ namePrefix: ['Fitness', '健身', 'HeartRate'] }], // 过滤设备名称（根据你的设备修改）
+        acceptAllDevices: false, // 不扫描所有设备，只扫描指定服务的设备（更精准）
+        filters: [{ namePrefix: ['Fitness', '健身', 'HeartRate'] }], // 根据设备名称前缀过滤（根据实际设备修改）
         optionalServices: [
-          FITNESS_DEVICE_UUIDS.HEART_RATE_SERVICE,
-          FITNESS_DEVICE_UUIDS.FITNESS_MACHINE_SERVICE,
-          '00001800-0000-1000-8000-00805f9b34fb' // 通用访问服务
+          FITNESS_DEVICE_UUIDS.HEART_RATE_SERVICE, // 心率服务
+          FITNESS_DEVICE_UUIDS.FITNESS_MACHINE_SERVICE, // 健身设备服务
+          '00001800-0000-1000-8000-00805f9b34fb' // 通用访问服务（GAP Service）
         ]
       });
 
+      // 使用 Promise.race 实现超时控制
       const device = await Promise.race([devicePromise, timeoutPromise]);
 
-      // 避免重复添加设备
+      // 避免重复添加设备（检查设备 ID 是否已存在）
       if (!devices.some(d => d.id === device.id)) {
         setDevices([...devices, device]);
-        toast.success(lang === 'zh' ? '设备已找到' : 'Device found');
+        toast.success(currentLang === 'zh' ? '设备已找到' : 'Device found');
       }
 
       // 监听设备断开连接事件
+      // 当设备意外断开时，自动触发 handleDisconnect 函数
       device.addEventListener('gattserverdisconnected', handleDisconnect);
     } catch (err) {
       const errorMsg = err as Error;
-      // 用户取消选择不显示错误
+      // 用户取消选择设备时不显示错误提示（这是正常行为）
       if (errorMsg.name === 'NotFoundError' || errorMsg.message.includes('cancel')) {
         return;
       }
-      toast.error(lang === 'zh' ? `扫描设备失败：${errorMsg.message}` : `Scan failed: ${errorMsg.message}`);
+      toast.error(currentLang === 'zh' ? `扫描设备失败：${errorMsg.message}` : `Scan failed: ${errorMsg.message}`);
     } finally {
       setIsScanning(false);
     }
   };
 
-  // 连接蓝牙设备并初始化数据监听
+  /**
+   * 连接蓝牙设备并初始化数据监听
+   * 
+   * 流程：
+   * 1. 检查设备是否支持 GATT 服务
+   * 2. 连接 GATT 服务器（带超时保护）
+   * 3. 读取所有可用的 GATT 服务
+   * 4. 遍历服务，查找心率服务和健身设备服务
+   * 5. 为每个服务设置特征值监听器
+   * 6. 启用特征值通知，开始接收实时数据
+   * 
+   * 关键步骤说明：
+   * - 特征值监听：通过 addEventListener 监听 'characteristicvaluechanged' 事件
+   * - 数据解析：使用 bluetoothParser 工具函数解析原始数据
+   * - 数据持久化：每次数据更新时自动保存到 localStorage
+   */
   const connectDevice = async (device: BluetoothDevice) => {
     try {
+      // 检查设备是否支持 GATT 服务
       if (!device.gatt) {
-        toast.error(lang === 'zh' ? '该设备不支持GATT服务' : 'This device does not support GATT services');
+        toast.error(currentLang === 'zh' ? '该设备不支持GATT服务' : 'This device does not support GATT services');
         return;
       }
 
       setIsConnecting(true);
-      toast.loading(lang === 'zh' ? '正在连接设备...' : 'Connecting to device...', { id: 'connecting' });
+      toast.loading(currentLang === 'zh' ? '正在连接设备...' : 'Connecting to device...', { id: 'connecting' });
 
-      // 添加连接超时处理
+      // 添加连接超时处理：10秒后如果仍未连接成功，则超时
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error(lang === 'zh' ? '连接超时，请重试' : 'Connection timeout, please try again')), 10000); // 10秒超时
+        setTimeout(() => reject(new Error(currentLang === 'zh' ? '连接超时，请重试' : 'Connection timeout, please try again')), 10000);
       });
 
-      // 连接GATT服务器
+      // 连接 GATT 服务器
+      // GATT (Generic Attribute Profile) 是蓝牙低功耗设备通信的核心协议
       const connectPromise = device.gatt.connect();
       const server = await Promise.race([connectPromise, timeoutPromise]);
       
       setGattServer(server);
       setConnectedDevice(device);
 
-      // 读取所有可用的GATT服务
+      // 读取所有可用的 GATT 服务
+      // 每个服务包含多个特征值（Characteristics），特征值是实际的数据接口
       const services = await server.getPrimaryServices();
       const servicesWithChars: GattServiceWithChars[] = [];
 
-      // 遍历服务，读取特征值并监听健身数据
+      // 遍历所有服务，查找并初始化心率服务和健身设备服务
       for (const service of services) {
         try {
+          // 获取服务下的所有特征值
           const characteristics = await service.getCharacteristics();
           servicesWithChars.push({ service, characteristics });
 
-          // 监听心率数据
+          // ========== 心率服务处理 ==========
+          // 检查是否为心率服务（标准 UUID: 0x180D）
           if (service.uuid === FITNESS_DEVICE_UUIDS.HEART_RATE_SERVICE) {
+            // 查找心率测量特征值（标准 UUID: 0x2A37）
             const hrChar = characteristics.find(char => char.uuid === FITNESS_DEVICE_UUIDS.HEART_RATE_MEASUREMENT);
+            
             if (hrChar) {
-              // 读取初始心率数据
+              // 步骤1：读取初始心率数据（连接后立即读取一次）
               await listenHeartRate(hrChar);
-              // 监听心率数据变化
+              
+              // 步骤2：设置特征值变化监听器
+              // 当设备发送新的心率数据时，会触发此事件
               hrChar.addEventListener('characteristicvaluechanged', (e) => {
                 try {
                   const value = (e.target as BluetoothRemoteGATTCharacteristic).value;
                   if (!value) return;
-                  const heartRate = parseFitnessData.heartRate(value);
+                  
+                  // 使用工具函数解析心率数据
+                  const heartRate = bluetoothParser.parseHeartRate(value);
+                  
+                  // 更新状态并保存到 localStorage
                   setFitnessData(prev => {
                     const updated = { ...prev, heartRate, isDataReceived: true };
                     saveFitnessDataToStorage(updated);
@@ -260,26 +231,36 @@ export default function ConnectPage() {
                   });
                 } catch (parseErr) {
                   console.error('心率数据解析失败：', parseErr);
-                  toast.error(lang === 'zh' ? '心率数据解析失败' : 'Failed to parse heart rate data', { duration: 3000 });
+                  toast.error(currentLang === 'zh' ? '心率数据解析失败' : 'Failed to parse heart rate data', { duration: 3000 });
                 }
               });
-              // 启用通知
+              
+              // 步骤3：启用特征值通知
+              // 只有启用通知后，设备才会主动推送数据更新
               await hrChar.startNotifications();
             }
           }
 
-          // 监听运动数据（时间、卡路里）
+          // ========== 健身设备服务处理 ==========
+          // 检查是否为健身设备服务（标准 UUID: 0x1826）
           if (service.uuid === FITNESS_DEVICE_UUIDS.FITNESS_MACHINE_SERVICE) {
+            // 查找运动数据特征值（根据设备协议定义）
             const workoutChar = characteristics.find(char => char.uuid === FITNESS_DEVICE_UUIDS.WORKOUT_DATA);
+            
             if (workoutChar) {
-              // 读取初始运动数据
+              // 步骤1：读取初始运动数据
               await listenWorkoutData(workoutChar);
-              // 监听运动数据变化
+              
+              // 步骤2：设置特征值变化监听器
               workoutChar.addEventListener('characteristicvaluechanged', (e) => {
                 try {
                   const value = (e.target as BluetoothRemoteGATTCharacteristic).value;
                   if (!value) return;
-                  const { time, calories } = parseFitnessData.workoutData(value);
+                  
+                  // 使用工具函数解析运动数据（时间和卡路里）
+                  const { time, calories } = bluetoothParser.parseWorkoutData(value);
+                  
+                  // 更新状态并保存到 localStorage
                   setFitnessData(prev => {
                     const updated = { ...prev, time, calories, isDataReceived: true };
                     saveFitnessDataToStorage(updated);
@@ -287,40 +268,56 @@ export default function ConnectPage() {
                   });
                 } catch (parseErr) {
                   console.error('运动数据解析失败：', parseErr);
-                  toast.error(lang === 'zh' ? '运动数据解析失败' : 'Failed to parse workout data', { duration: 3000 });
+                  toast.error(currentLang === 'zh' ? '运动数据解析失败' : 'Failed to parse workout data', { duration: 3000 });
                 }
               });
-              // 启用通知
+              
+              // 步骤3：启用特征值通知
               await workoutChar.startNotifications();
             }
           }
         } catch (serviceErr) {
+          // 如果某个服务初始化失败，记录错误但继续处理其他服务
+          // 这样可以确保即使部分服务失败，其他功能仍能正常工作
           console.error('服务初始化失败：', serviceErr);
-          // 继续处理其他服务，不中断整个连接流程
         }
       }
 
+      // 保存所有服务和特征值信息（用于调试显示）
       setGattServices(servicesWithChars);
+      
       toast.dismiss('connecting');
-      toast.success(lang === 'zh' ? `已连接设备：${device.name || '未知设备'}` : `Connected to: ${device.name || 'Unknown Device'}`);
+      toast.success(currentLang === 'zh' ? `已连接设备：${device.name || '未知设备'}` : `Connected to: ${device.name || 'Unknown Device'}`);
     } catch (err) {
       toast.dismiss('connecting');
       const errorMsg = err as Error;
       const errorMessage = errorMsg.message || errorMsg.toString();
-      toast.error(lang === 'zh' ? `设备连接失败：${errorMessage}` : `Connection failed: ${errorMessage}`);
+      toast.error(currentLang === 'zh' ? `设备连接失败：${errorMessage}` : `Connection failed: ${errorMessage}`);
     } finally {
       setIsConnecting(false);
     }
   };
 
-  // 读取初始心率数据
+  /**
+   * 读取初始心率数据
+   * 
+   * 在连接设备后，立即读取一次心率数据，用于显示当前状态
+   * 后续的数据更新将通过特征值通知（notifications）自动接收
+   * 
+   * @param char 心率测量特征值对象
+   */
   const listenHeartRate = async (char: BluetoothRemoteGATTCharacteristic) => {
     try {
+      // 读取特征值的当前值
       const value = await char.readValue();
       if (!value || value.byteLength === 0) {
         throw new Error('Empty data received');
       }
-      const heartRate = parseFitnessData.heartRate(value);
+      
+      // 使用工具函数解析心率数据
+      const heartRate = bluetoothParser.parseHeartRate(value);
+      
+      // 更新状态并保存到 localStorage
       const newData = { heartRate, isDataReceived: true };
       setFitnessData(prev => {
         const updated = { ...prev, ...newData };
@@ -329,18 +326,30 @@ export default function ConnectPage() {
       });
     } catch (err) {
       console.error('读取初始心率数据失败：', err);
-      toast.error(lang === 'zh' ? '心率数据读取失败' : 'Failed to read heart rate data', { duration: 3000 });
+      toast.error(currentLang === 'zh' ? '心率数据读取失败' : 'Failed to read heart rate data', { duration: 3000 });
     }
   };
 
-  // 读取初始运动数据
+  /**
+   * 读取初始运动数据
+   * 
+   * 在连接设备后，立即读取一次运动数据（时间和卡路里），用于显示当前状态
+   * 后续的数据更新将通过特征值通知（notifications）自动接收
+   * 
+   * @param char 运动数据特征值对象
+   */
   const listenWorkoutData = async (char: BluetoothRemoteGATTCharacteristic) => {
     try {
+      // 读取特征值的当前值
       const value = await char.readValue();
       if (!value || value.byteLength === 0) {
         throw new Error('Empty data received');
       }
-      const { time, calories } = parseFitnessData.workoutData(value);
+      
+      // 使用工具函数解析运动数据
+      const { time, calories } = bluetoothParser.parseWorkoutData(value);
+      
+      // 更新状态并保存到 localStorage
       const newData = { time, calories, isDataReceived: true };
       setFitnessData(prev => {
         const updated = { ...prev, ...newData };
@@ -349,11 +358,19 @@ export default function ConnectPage() {
       });
     } catch (err) {
       console.error('读取初始运动数据失败：', err);
-      toast.error(lang === 'zh' ? '运动数据读取失败' : 'Failed to read workout data', { duration: 3000 });
+      toast.error(currentLang === 'zh' ? '运动数据读取失败' : 'Failed to read workout data', { duration: 3000 });
     }
   };
 
-  // 处理设备断开连接
+  /**
+   * 处理设备断开连接
+   * 
+   * 当设备断开连接时：
+   * 1. 断开 GATT 服务器连接
+   * 2. 重置所有相关状态
+   * 3. 清除 localStorage 中的数据
+   * 4. 显示断开连接提示
+   */
   const handleDisconnect = () => {
     if (connectedDevice) {
       if (connectedDevice.gatt?.connected) {
@@ -375,21 +392,29 @@ export default function ConnectPage() {
     }
   };
 
+  /**
+   * 初始化效果
+   * 
+   * 在组件挂载时：
+   * 1. 设置客户端渲染标志
+   * 2. 检测浏览器兼容性
+   * 3. 如果不支持 Web Bluetooth API，显示错误提示
+   */
   useEffect(() => {
     setIsClient(true);
+    
+    // 检测浏览器类型和 Web Bluetooth API 支持情况
     const browser = detectBrowser();
     setBrowserInfo(browser);
     
-    // 检查浏览器是否支持Web Bluetooth
+    // 如果不支持 Web Bluetooth API，显示友好的错误提示
     if (!browser.isSupported) {
-      const message = browser.isSafari 
-        ? (lang === 'zh' ? 'Safari 浏览器不支持 Web Bluetooth API。请使用 Chrome 或 Edge 浏览器。' : 'Safari does not support Web Bluetooth API. Please use Chrome or Edge browser.')
-        : browser.isFirefox
-        ? (lang === 'zh' ? 'Firefox 浏览器不支持 Web Bluetooth API。请使用 Chrome 或 Edge 浏览器。' : 'Firefox does not support Web Bluetooth API. Please use Chrome or Edge browser.')
-        : (lang === 'zh' ? '你的浏览器不支持蓝牙功能。请使用 Chrome 或 Edge 浏览器。' : 'Your browser does not support Bluetooth. Please use Chrome or Edge browser.');
-      toast.error(message, { duration: 6000 });
+      const compatibilityMsg = getCompatibilityMessage(browser, currentLang);
+      if (compatibilityMsg) {
+        toast.error(compatibilityMsg.message, { duration: 6000 });
+      }
     }
-  }, [lang]);
+  }, [currentLang]);
 
   if (!isClient) return <div></div>;
 
@@ -440,28 +465,26 @@ export default function ConnectPage() {
         </p>
 
         {/* 浏览器兼容性提示 */}
-        {!browserInfo.isSupported && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <div className="text-yellow-600 text-xl">⚠️</div>
-              <div className="flex-1">
-                <h3 className="text-yellow-800 font-semibold mb-1 text-sm sm:text-base">
-                  {lang === 'zh' ? '浏览器兼容性提示' : 'Browser Compatibility Notice'}
-                </h3>
-                <p className="text-yellow-700 text-xs sm:text-sm mb-2">
-                  {browserInfo.isSafari 
-                    ? (lang === 'zh' ? 'Safari 浏览器不支持 Web Bluetooth API。' : 'Safari does not support Web Bluetooth API.')
-                    : browserInfo.isFirefox
-                    ? (lang === 'zh' ? 'Firefox 浏览器不支持 Web Bluetooth API。' : 'Firefox does not support Web Bluetooth API.')
-                    : (lang === 'zh' ? '当前浏览器不支持 Web Bluetooth API。' : 'Current browser does not support Web Bluetooth API.')}
-                </p>
-                <p className="text-yellow-700 text-xs sm:text-sm">
-                  {lang === 'zh' ? '建议使用 Chrome 或 Edge 浏览器以获得最佳体验。' : 'We recommend using Chrome or Edge browser for the best experience.'}
-                </p>
+        {!browserInfo.isSupported && (() => {
+          const compatibilityMsg = getCompatibilityMessage(browserInfo, currentLang);
+          if (!compatibilityMsg) return null;
+          
+          return (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="text-yellow-600 text-xl">⚠️</div>
+                <div className="flex-1">
+                  <h3 className="text-yellow-800 font-semibold mb-1 text-sm sm:text-base">
+                    {compatibilityMsg.title}
+                  </h3>
+                  <p className="text-yellow-700 text-xs sm:text-sm">
+                    {compatibilityMsg.message}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 健身数据展示面板（核心） */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 max-w-3xl">
@@ -484,7 +507,7 @@ export default function ConnectPage() {
               {lang === 'zh' ? '运动时间' : 'Workout Time'}
             </h3>
             <p className="text-4xl sm:text-5xl m-0 text-gray-900 font-semibold">
-              {fitnessData.time ? parseFitnessData.formatTime(fitnessData.time) : '-'}
+              {fitnessData.time ? bluetoothParser.formatTime(fitnessData.time) : '-'}
             </p>
             <p className="text-gray-600 mt-2 mb-0 text-xs sm:text-sm">
               {lang === 'zh' ? '时:分:秒' : 'HH:MM:SS'}
